@@ -10,6 +10,9 @@ ENV http_proxy=${HTTP_PROXY:-http://127.0.0.1:7890}
 ENV https_proxy=${HTTPS_PROXY:-http://127.0.0.1:7890}
 ENV no_proxy=${NO_PROXY:-localhost,127.0.0.1,.local,registry-1.docker.io}
 
+# 让 git 也用代理（clone 不再卡）
+RUN git config --global http.proxy  "${http_proxy}"  && \
+    git config --global https.proxy "${https_proxy}"
 # For GPU support, please choose the proper tag from https://hub.docker.com/r/pytorch/pytorch/tags
 
 RUN apt-get clean && apt-get update && apt-get install -y \  
