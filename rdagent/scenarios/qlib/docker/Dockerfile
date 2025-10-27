@@ -6,9 +6,9 @@ ARG HTTPS_PROXY
 ARG NO_PROXY
 
 # 下行默认值就是你想要的 127.0.0.1:7890；如果外部没传 --build-arg，就用这里的默认
-ENV http_proxy=${HTTP_PROXY:-http://127.0.0.1:7890}
-ENV https_proxy=${HTTPS_PROXY:-http://127.0.0.1:7890}
-ENV no_proxy=${NO_PROXY:-localhost,127.0.0.1,.local,registry-1.docker.io}
+ARG HTTP_PROXY=http://172.17.0.1:7890
+ARG HTTPS_PROXY=http://172.17.0.1:7890
+ARG NO_PROXY=localhost,127.0.0.1,.local,registry-1.docker.io
 
 # 让 git 也用代理（clone 不再卡）
 RUN git config --global http.proxy  "${http_proxy}"  && \
