@@ -27,7 +27,7 @@ RUN apt-get clean && apt-get update && apt-get install -y \
   && git --version \
   && git config --global http.proxy  "$http_proxy"  || true \
   && git config --global https.proxy "$https_proxy" || true \
-  && rm -rf /var/lib/apt/lists/* \
+  && rm -rf /var/lib/apt/lists/*
 
 # For GPU support, please choose the proper tag from https://hub.docker.com/r/pytorch/pytorch/tags
 
