@@ -783,7 +783,8 @@ class DockerEnv(Env[DockerConf]):
         ):
             logger.info(f"Building the image from dockerfile: {self.conf.dockerfile_folder_path}")
             resp_stream = client.api.build(
-                path=str(self.conf.dockerfile_folder_path), tag=self.conf.image, network_mode=self.conf.network,
+                path=str(self.conf.dockerfile_folder_path), tag=self.conf.image, #network_mode=self.conf.network,
+                network_mode="host",
                 buildargs={
                     "HTTPS_PROXY": "http://127.0.0.1:7890",
                 }
