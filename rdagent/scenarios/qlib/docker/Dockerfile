@@ -29,6 +29,10 @@ RUN git config --global http.proxy  "$http_proxy"  || true && \
     git config --global http.lowSpeedTime   120   && \
     git --version && git config -l | grep -E 'proxy|lowSpeed' || true
 
+RUN echo "proxy=$http_proxy" && \
+    curl -I -m 10 https://github.com || true && \
+    curl -I -m 10 https://objects.githubusercontent.com || true
+
 # === clone（带详细日志 + 多次重试）===
 # 如果不需要完整历史，也可加 --depth=1 提高成功率
 RUN set -eux; \
