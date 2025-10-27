@@ -1,8 +1,8 @@
 FROM pytorch/pytorch:2.2.1-cuda12.1-cudnn8-runtime
 
 # ===== 仅供 git/pip 用的构建期代理（可通过 --build-arg 覆盖）=====
-ARG HTTP_PROXY=http://172.17.0.1:7890
-ARG HTTPS_PROXY=http://172.17.0.1:7890
+ARG HTTP_PROXY=http://127.0.0.1:7890
+ARG HTTPS_PROXY=http://127.0.0.1:7890
 ARG NO_PROXY=localhost,127.0.0.1,.local,registry-1.docker.io
 
 # 让 git/pip 继承代理（APT 不用）
