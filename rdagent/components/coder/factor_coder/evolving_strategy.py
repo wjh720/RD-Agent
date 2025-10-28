@@ -169,5 +169,9 @@ class FactorMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
                 continue
             if evo.sub_workspace_list[index] is None:
                 evo.sub_workspace_list[index] = FactorFBWorkspace(target_task=evo.sub_tasks[index])
-            evo.sub_workspace_list[index].inject_files(**{"factor.py": code_list[index]})
+            code_item = code_list[index]
+            if isinstance(code_item, dict):
+                evo.sub_workspace_list[index].inject_files(**code_item)
+            else:
+                evo.sub_workspace_list[index].inject_files(**{"factor.py": code_item})
         return evo
