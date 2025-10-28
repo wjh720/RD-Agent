@@ -185,3 +185,4 @@ static/
 AGENTS.md
 
 .idea
+out_logs/
