@@ -138,28 +138,35 @@ df_added.to_csv(added_csv, index=False)
 
 # === 6) Plot update path ===
 plt.close("all")
-fig = plt.figure(constrained_layout=True)
+fig, ax_left = plt.subplots(figsize=(12, 6))  # 显式创建 Axes
+
 if not df_added.empty:
     x = df_added["session"].tolist()
     y = df_added["n_factors"].tolist()
-    plt.step(x, y, where="post")
-    plt.scatter(x, y)
-    # 为了避免文字过多挤不下：仅在有新增且新增条目<=3时标注，更多就省略为“+N”
+    ax_left.step(x, y, where="post", label="Feature count")
+    ax_left.scatter(x, y, s=30)
+    ax_left.set_xlabel("Session Index")
+    ax_left.set_ylabel("Number of Features")
+    ax_left.set_title("SOTA Update Path: Cumulative Feature Count by Session")
+
+    # 注释聚合（<=3显示名称，否则显示+N）
     for _, r in df_added.iterrows():
-        s = r["session"]; adds = r["added_features"]
-        if adds:
+        adds = r["added_features"]
+        if isinstance(adds, list) and len(adds) > 0:
             label = f"+{len(adds)}" if len(adds) > 3 else "+ " + ", ".join(adds)
-            plt.annotate(label, (s, r["n_factors"]), xytext=(5, 5), textcoords="offset points", fontsize=8)
-    plt.title("SOTA Update Path: Cumulative Feature Count by Session")
-    plt.xlabel("Session Index"); plt.ylabel("Number of Features")
+            ax_left.annotate(label, (r["session"], r["n_factors"]),
+                             xytext=(5, 6), textcoords="offset points", fontsize=8)
+
+    # 可选：给右侧留点空间
+    plt.subplots_adjust(right=0.82)
 else:
-    plt.title("SOTA Update Path: No sessions parsed (no SOTA experiments found)")
-    plt.xlabel("Session Index"); plt.ylabel("Number of Features")
-    plt.text(0.5, 0.5, "No SOTA data available under the base path.", ha="center")
+    ax_left.set_title("SOTA Update Path: No sessions parsed (no SOTA experiments found)")
+    ax_left.set_xlabel("Session Index")
+    ax_left.set_ylabel("Number of Features")
+    ax_left.text(0.5, 0.5, "No SOTA data available under the base path.", ha="center", va="center")
 
 plot_path = out_dir / "sota_update_path.png"
-plt.savefig(plot_path, dpi=150)
-plt.show()
+fig.savefig(plot_path, dpi=150, bbox_inches="tight")
 
 # Expose artifact paths
 (summary_csv, added_csv, plot_path)
