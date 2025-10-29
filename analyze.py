@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import List, Dict, Any, Tuple
 import pandas as pd
 import matplotlib.pyplot as plt
+from loguru import logger
 
 exp_name = "2025-10-29_01-12-54-858255"
 # === 1) Config ===
@@ -193,50 +194,71 @@ figA.savefig(figA_path, dpi=150, bbox_inches="tight")
 # === 6B) 累计特征数（仅标注 +N，详细名单放表里） ===
 import ast
 
-def _to_list_safe(x):
-    if isinstance(x, list): return x
+def _to_list(x):
+    if isinstance(x, list):
+        return x
     if isinstance(x, str) and x.startswith('['):
-        try: return ast.literal_eval(x)
-        except: return []
+        try:
+            return ast.literal_eval(x)
+        except Exception:
+            return []
     return []
+
+def _to_based_chain_factors(x):
+    """
+    x 形如 '[{"n_factors": 3, "factors": ["a","b","c"]}, ...]'（CSV 中的字符串）
+    解析后提取所有 'factors' 并拼成一个列表
+    """
+    vals = []
+    if isinstance(x, list):
+        it = x
+    elif isinstance(x, str) and x.startswith('['):
+        try:
+            it = ast.literal_eval(x)
+        except Exception:
+            it = []
+    else:
+        it = []
+    for d in it:
+        if isinstance(d, dict) and "factors" in d and isinstance(d["factors"], list):
+            vals.extend(d["factors"])
+    return vals
 
 plt.close("all")
 figB, ax = plt.subplots(figsize=(14, 4))
 
-if not df_added.empty:
-    df_added = df_added.sort_values("session").copy()
-
-    # 确保列为 list（有时从 CSV 读出来是字符串）
-    if "added_features" in df_added.columns:
-        df_added["added_features"] = df_added["added_features"].apply(_to_list_safe)
+if not df.empty:
+    # 按 session 排序
+    if "session" in df.columns:
+        df_plot = df.sort_values("session").copy()
     else:
-        df_added["added_features"] = [[] for _ in range(len(df_added))]
-    if "removed_features" in df_added.columns:
-        df_added["removed_features"] = df_added["removed_features"].apply(_to_list_safe)
-    else:
-        df_added["removed_features"] = [[] for _ in range(len(df_added))]
+        # 没有 session 列就按行序
+        df_plot = df.copy()
+        df_plot["session"] = range(len(df_plot))
 
-    # —— 仅在绘图阶段重建“累计特征集合” —— #
-    cum_set = set()
-    x2, y2, add_counts = [], [], []
-    for _, r in df_added.iterrows():
+    cum = set()
+    x2, y2, add_counts, added_lists = [], [], [], []
+
+    for _, r in df_plot.iterrows():
         sess = int(r["session"])
-        adds = r["added_features"] or []
-        rems = r["removed_features"] or []
-        # 累计集合更新
-        cum_set.update(adds)
-        for f in rems:
-            cum_set.discard(f)
-        # 记录横纵坐标
+        cur_factors = set(_to_list(r.get("factors", [])))
+        chain_factors = set(_to_based_chain_factors(r.get("based_chain", "[]")))
+        full = cur_factors | chain_factors        # 这一期 SOTA 的“完整特征集合”
+
+        added = sorted(full - cum)
+        removed = sorted(cum - full)              # 一般不会频繁出现，有就会扣减
+        cum = full
+
         x2.append(sess)
-        y2.append(len(cum_set))
-        add_counts.append(len(adds))
+        y2.append(len(cum))
+        add_counts.append(len(added))
+        added_lists.append(added)
 
     # 画图
     ax.step(x2, y2, where="post", label="Feature count")
     ax.scatter(x2, y2, s=25)
 
-    # 标注：仅显示 +N，避免拥挤；具体名单放表格里
+    # 仅标注 +N（避免拥挤）；如需具体名称，可把 added_lists[i] 打印到表格
     for sess, yv, n in zip(x2, y2, add_counts):
         if n > 0:
             ax.annotate(f"+{n}", (sess, yv), xytext=(4, 6),
@@ -244,8 +266,9 @@ if not df_added.empty:
 
     ax.set_xlabel("Session Index")
     ax.set_ylabel("Number of Features")
-    ax.set_title("SOTA Update Path: Cumulative Feature Count (labels show +N added)")
+    ax.set_title("SOTA Update Path: Cumulative Feature Count (reconstructed from lineage)")
     ax.legend(loc="best")
+
 else:
     ax.set_title("SOTA Update Path: no data")
     ax.set_xlabel("Session Index")
@@ -254,3 +277,6 @@ else:
 figB.tight_layout()
 figB_path = out_dir / "figure_feature_count.png"
 figB.savefig(figB_path, dpi=150, bbox_inches="tight")
+
+###
+logger.info(f"Artifacts saved to {out_dir.resolve()}")
