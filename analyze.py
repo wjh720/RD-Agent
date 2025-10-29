@@ -5,9 +5,11 @@ from typing import List, Dict, Any, Tuple
 import pandas as pd
 import matplotlib.pyplot as plt
 
+exp_name = "2025-10-29_01-12-54-858255"
 # === 1) Config ===
-BASE = Path("log/2025-10-29_01-12-54-858255/__session__")
+BASE = Path(f"log/{exp_name}/__session__")
 SESSION_RANGE = range(0, 16)  # 0..15 inclusive
+out_dir = Path(f"artifical/sota_history/{exp_name}")
 
 # 常见的落盘相对路径（逐一尝试，找到就用）
 CANDIDATE_REL_PATHS = [
@@ -128,16 +130,11 @@ df_added = pd.DataFrame(added_rows) if added_rows else \
            pd.DataFrame(columns=["session","n_factors","added_features","removed_features"])
 
 # === 5) Save artifacts ===
-out_dir = Path("artifical/sota_history")
 out_dir.mkdir(parents=True, exist_ok=True)
 summary_csv = out_dir / "sota_sessions_summary.csv"
 added_csv = out_dir / "sota_added_features_by_session.csv"
 df.to_csv(summary_csv, index=False)
 df_added.to_csv(added_csv, index=False)
-
-from caas_jupyter_tools import display_dataframe_to_user
-display_dataframe_to_user("SOTA Sessions Summary", df)
-display_dataframe_to_user("SOTA Added/Removed Features by Session", df_added)
 
 # === 6) Plot update path ===
 plt.close("all")
