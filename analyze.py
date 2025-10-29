@@ -140,27 +140,36 @@ added_csv = out_dir / "sota_added_features_by_session.csv"
 df.to_csv(summary_csv, index=False)
 df_added.to_csv(added_csv, index=False)
 
-def collect_final_sota_factors(exp_obj) -> "OrderedDict[str, str]":
+def collect_full_factors_with_order(exp_obj):
     """
-    沿 lineage 递归收集因子定义：先 based_experiments（祖先）后当前，
-    同名因子以“后出现的定义”为准（覆盖旧定义），得到“最终 SOTA”的定义。
+    沿 lineage 以 DFS 顺序返回“去重后的有序列表”：
+    先 based_experiments（祖先，按出现顺序），再当前 sub_tasks。
+    返回: List[{"factor_name": str, "factor_formulation": str}]
     """
-    store = OrderedDict()
+    out = []
+    seen = set()
 
     def _visit(e):
+        # 先祖先
         for b in getattr(e, "based_experiments", []) or []:
             _visit(b)
+        # 后当前
         for st in getattr(e, "sub_tasks", []) or []:
             name = getattr(st, "factor_name", getattr(st, "name", None))
             form = getattr(st, "factor_formulation", None)
-            if name is not None:
-                store[name] = form
+            if name is not None and name not in seen:
+                seen.add(name)
+                out.append({"factor_name": name, "factor_formulation": form})
     _visit(exp_obj)
-    return store
+    return out  # 顺序 = lineage 的首次出现顺序
 
-# 遍历一次 Base 目录，再做“逐 session 的最终因子列表”
-rows_final = []          # 每行：session, factor_name, factor_formulation
-sessions_with_sota = []  # 记录有哪些 session 有 SOTA
+# 遍历 __session__ 计算“首次加入顺序”
+added_in_order = []   # 全局新增顺序列表
+added_set = set()     # 全局已加入集合，防止重复
+first_sess_of = {}    # factor -> 首次出现的 session
+form_when_added = {}  # factor -> 首次出现时的公式
+
+sessions_with_sota = []
 if BASE.exists():
     for s in SESSION_RANGE:
         session_dir = BASE / str(s)
@@ -172,37 +181,39 @@ if BASE.exists():
         hypo, exp = extract_sota(obj)
         if exp is None:
             continue
-
         sessions_with_sota.append(s)
-        final_map = collect_final_sota_factors(exp)
-        for fname, fform in final_map.items():
-            rows_final.append({
-                "session": s,
-                "factor_name": fname,
-                "factor_formulation": fform
-            })
 
-# 保存“逐 session 的最终因子定义”
-df_final_by_session = pd.DataFrame(rows_final).sort_values(["session", "factor_name"])
-final_by_session_csv = out_dir / "final_sota_factors_by_session.csv"
-df_final_by_session.to_csv(final_by_session_csv, index=False, encoding="utf-8")
-logger.info(f"Saved: {final_by_session_csv}")
+        seq = collect_full_factors_with_order(exp)  # 本 session 的完整有序去重列表
+        for item in seq:
+            name = item["factor_name"]
+            form = item["factor_formulation"]
+            if name not in added_set:
+                # 这个特征第一次出现在整个路线中
+                added_set.add(name)
+                first_sess_of[name] = s
+                form_when_added[name] = form
+                added_in_order.append({
+                    "order": len(added_in_order) + 1,   # 全局加入顺序编号
+                    "session_first_added": s,
+                    "factor_name": name,
+                    "factor_formulation": form
+                })
 
-# 选一个“最终版本”导出（默认取 session 最大的那个；你也可以改成按 IR/年化收益挑选）
-if sessions_with_sota:
-    last_sess = max(sessions_with_sota)
-    final_last = df_final_by_session[df_final_by_session["session"] == last_sess] \
-                    .drop(columns=["session"]).reset_index(drop=True)
-    final_csv = out_dir / "final_sota_factors.csv"
-    final_json = out_dir / "final_sota_factors.json"
-    final_last.to_csv(final_csv, index=False, encoding="utf-8")
-    with open(final_json, "w", encoding="utf-8") as f:
-        json.dump(dict(zip(final_last["factor_name"], final_last["factor_formulation"])),
-                  f, ensure_ascii=False, indent=2)
-    logger.info(f"Saved: {final_csv}")
-    logger.info(f"Saved: {final_json}")
-else:
-    logger.warning("No SOTA experiment found under the given base path. Nothing to export.")
+# 落盘：按加入先后顺序输出
+df_added_order = pd.DataFrame(added_in_order).sort_values("order").reset_index(drop=True)
+add_order_csv  = out_dir / "sota_feature_add_order.csv"
+add_order_json = out_dir / "sota_feature_add_order.json"
+df_added_order.to_csv(add_order_csv, index=False, encoding="utf-8")
+with open(add_order_json, "w", encoding="utf-8") as f:
+    json.dump(added_in_order, f, ensure_ascii=False, indent=2)
+
+logger.info(f"Saved (add order): {add_order_csv}")
+logger.info(f"Saved (add order): {add_order_json}")
+
+# 可选：打印到控制台
+for row in added_in_order:
+    logger.info(f"[#{row['order']:02d}] session={row['session_first_added']}  {row['factor_name']}")
+    logger.info(f"    .. {row['factor_formulation']}")
 
 # === 6A) IR & Annualized Return（双轴） ===
 plt.close("all")
