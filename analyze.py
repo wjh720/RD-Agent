@@ -11,29 +11,51 @@ import json
 
 exp_name = "2025-10-29_01-12-54-858255"
 # === 1) Config ===
+PICKLE_NAME = "0_direct_exp_gen"   # 仅此一种
 BASE = Path(f"log/{exp_name}/__session__")
-SESSION_RANGE = range(0, 16)  # 0..15 inclusive
 out_dir = Path(f"artifacts/sota_history/{exp_name}")
-
-# 常见的落盘相对路径（逐一尝试，找到就用）
-CANDIDATE_REL_PATHS = [
-    "0_direct_exp_gen",        # e.g. __session__/15/0_direct_exp_gen
-    "0/0_direct_exp_gen",      # e.g. __session__/15/0/0_direct_exp_gen
-    "1/0_direct_exp_gen",      # 兼容其他流水线
-    "exp/0_direct_exp_gen",    # 兼容其他流水线
-]
 
 # === 2) Helpers ===
 def try_load_session_pickle(session_dir: Path) -> Tuple[Path, Any]:
-    for rel in CANDIDATE_REL_PATHS:
-        p = session_dir / rel
-        if p.exists() and p.is_file():
-            try:
-                with open(p, "rb") as f:
-                    return p, pickle.load(f)
-            except Exception:
-                pass
+    p = session_dir / PICKLE_NAME
+    if p.exists() and p.is_file():
+        try:
+            with open(p, "rb") as f:
+                return p, pickle.load(f)
+        except Exception:
+            pass
     return None, None
+
+def discover_sessions(base: Path) -> list[int]:
+    """仅收集存在 0_direct_exp_gen 的数字目录"""
+    sessions = []
+    if not base.exists():
+        return sessions
+    for d in base.iterdir():
+        if not d.is_dir():
+            continue
+        try:
+            sidx = int(d.name)
+        except ValueError:
+            continue
+        if (d / PICKLE_NAME).exists():
+            sessions.append(sidx)
+    sessions.sort()
+    return sessions
+
+# === 动态发现 sessions ===
+SESSION_RANGE = discover_sessions(BASE)
+logger.info(f"Discovered sessions: {SESSION_RANGE}")
+
+# === 2) Helpers ===
+def try_load_session_pickle(session_dir: Path) -> Tuple[Path, Any]:
+    p = session_dir / PICKLE_NAME
+    if p.exists() and p.is_file():
+        try:
+            with open(p, "rb") as f:
+                return p, pickle.load(f)
+        except Exception:
+            return None, None
 
 def extract_sota(data_obj) -> Tuple[Any, Any]:
     if not hasattr(data_obj, "trace"):
@@ -263,7 +285,6 @@ figA_path = out_dir / "figure_metrics_ir_return.png"
 figA.savefig(figA_path, dpi=150, bbox_inches="tight")
 
 
-# === 6B) 累计特征数（仅标注 +N，详细名单放表里） ===
 # === 6B) 累计特征数（仅标注 +N，详细名单放表里） ===
 
 def _to_list(x):
