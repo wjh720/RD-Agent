@@ -136,37 +136,90 @@ added_csv = out_dir / "sota_added_features_by_session.csv"
 df.to_csv(summary_csv, index=False)
 df_added.to_csv(added_csv, index=False)
 
-# === 6) Plot update path ===
+# === 6A) IR & Annualized Return（双轴） ===
 plt.close("all")
-fig, ax_left = plt.subplots(figsize=(12, 6))  # 显式创建 Axes
+figA, ax1 = plt.subplots(figsize=(12, 6))
+
+plotted = False
+if not df.empty:
+    # 排序并取横轴
+    if "session" in df.columns:
+        df = df.sort_values("session")
+        x = df["session"].tolist()
+    else:
+        x = list(range(len(df)))
+
+    # 左轴：IR
+    col_ir_wc = "1day.excess_return_with_cost.information_ratio"
+    col_ir_wo = "1day.excess_return_without_cost.information_ratio"
+    if col_ir_wc in df.columns:
+        ax1.plot(x, df[col_ir_wc], marker="o", linestyle="-", label="IR (with cost)")
+        plotted = True
+    if col_ir_wo in df.columns:
+        ax1.plot(x, df[col_ir_wo], marker="o", linestyle="--", label="IR (w/o cost)")
+        plotted = True
+
+ax1.set_xlabel("Session Index")
+ax1.set_ylabel("Information Ratio")
+
+# 右轴：年化收益
+ax2 = ax1.twinx()
+col_ann_wc = "1day.excess_return_with_cost.annualized_return"
+col_ann_wo = "1day.excess_return_without_cost.annualized_return"
+if not df.empty:
+    if col_ann_wc in df.columns:
+        ax2.plot(x, df[col_ann_wc], marker="s", linestyle="-.", label="Ann. Ret (with cost)")
+        plotted = True
+    if col_ann_wo in df.columns:
+        ax2.plot(x, df[col_ann_wo], marker="s", linestyle=":", label="Ann. Ret (w/o cost)")
+        plotted = True
+ax2.set_ylabel("Annualized Return")
+
+if plotted:
+    # 合并两个坐标轴的图例
+    lines1, labels1 = ax1.get_legend_handles_labels()
+    lines2, labels2 = ax2.get_legend_handles_labels()
+    ax2.legend(lines1 + lines2, labels1 + labels2, loc="best")
+    ax1.set_title("SOTA Metrics by Session: IR & Annualized Return")
+else:
+    ax1.set_title("SOTA Metrics: no data")
+
+figA.tight_layout()
+figA_path = out_dir / "figure_metrics_ir_return.png"
+figA.savefig(figA_path, dpi=150, bbox_inches="tight")
+
+
+# === 6B) 累计特征数（仅标注 +N，详细名单放表里） ===
+plt.close("all")
+figB, ax = plt.subplots(figsize=(14, 4))
 
 if not df_added.empty:
-    x = df_added["session"].tolist()
-    y = df_added["n_factors"].tolist()
-    ax_left.step(x, y, where="post", label="Feature count")
-    ax_left.scatter(x, y, s=30)
-    ax_left.set_xlabel("Session Index")
-    ax_left.set_ylabel("Number of Features")
-    ax_left.set_title("SOTA Update Path: Cumulative Feature Count by Session")
+    df_added = df_added.sort_values("session")
+    x2 = df_added["session"].tolist()
+    y2 = df_added["n_factors"].tolist()
 
-    # 注释聚合（<=3显示名称，否则显示+N）
+    ax.step(x2, y2, where="post", label="Feature count")
+    ax.scatter(x2, y2, s=25)
+
+    # 仅显示 +N，避免文字遮挡；详细新增名单请在表格中查看
     for _, r in df_added.iterrows():
-        adds = r["added_features"]
-        if isinstance(adds, list) and len(adds) > 0:
-            label = f"+{len(adds)}" if len(adds) > 3 else "+ " + ", ".join(adds)
-            ax_left.annotate(label, (r["session"], r["n_factors"]),
-                             xytext=(5, 6), textcoords="offset points", fontsize=8)
+        adds = r.get("added_features", [])
+        if isinstance(adds, float):  # 兼容 NaN
+            continue
+        n = len(adds) if isinstance(adds, list) else 0
+        if n > 0:
+            ax.annotate(f"+{n}", (r["session"], r["n_factors"]),
+                        xytext=(4, 6), textcoords="offset points", fontsize=8)
 
-    # 可选：给右侧留点空间
-    plt.subplots_adjust(right=0.82)
+    ax.set_xlabel("Session Index")
+    ax.set_ylabel("Number of Features")
+    ax.set_title("SOTA Update Path: Cumulative Feature Count (labels show +N added)")
+    ax.legend(loc="best")
 else:
-    ax_left.set_title("SOTA Update Path: No sessions parsed (no SOTA experiments found)")
-    ax_left.set_xlabel("Session Index")
-    ax_left.set_ylabel("Number of Features")
-    ax_left.text(0.5, 0.5, "No SOTA data available under the base path.", ha="center", va="center")
+    ax.set_title("SOTA Update Path: no data")
+    ax.set_xlabel("Session Index")
+    ax.set_ylabel("Number of Features")
 
-plot_path = out_dir / "sota_update_path.png"
-fig.savefig(plot_path, dpi=150, bbox_inches="tight")
-
-# Expose artifact paths
-(summary_csv, added_csv, plot_path)
+figB.tight_layout()
+figB_path = out_dir / "figure_feature_count.png"
+figB.savefig(figB_path, dpi=150, bbox_inches="tight")
