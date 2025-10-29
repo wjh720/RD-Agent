@@ -78,11 +78,17 @@ class LiteLLMAPIBackend(APIBackend):
                 f"{LogColors.MAGENTA}Creating embedding{LogColors.END} for: {input_content_list}",
                 tag="debug_litellm_emb",
             )
-        response = embedding(
-            model=model_name,
-            input=input_content_list,
-        )
-        response_list = [data["embedding"] for data in response.data]
+        response_list = []
+        for content_chunk in [
+            input_content_list[i: i + LITELLM_SETTINGS.embedding_max_str_num]
+            for i in range(0, len(input_content_list), LITELLM_SETTINGS.embedding_max_str_num)
+        ]:
+            response = embedding(
+                model=model_name,
+                input=content_chunk,
+            )
+            response_list.extend([data["embedding"] for data in response.data])
+        #response_list = [data["embedding"] for data in response.data]
         return response_list
 
     class CompleteKwargs(TypedDict):
