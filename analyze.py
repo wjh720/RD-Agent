@@ -128,7 +128,7 @@ df_added = pd.DataFrame(added_rows) if added_rows else \
            pd.DataFrame(columns=["session","n_factors","added_features","removed_features"])
 
 # === 5) Save artifacts ===
-out_dir = Path("/mnt/data/sota_history")
+out_dir = Path("artifical/sota_history")
 out_dir.mkdir(parents=True, exist_ok=True)
 summary_csv = out_dir / "sota_sessions_summary.csv"
 added_csv = out_dir / "sota_added_features_by_session.csv"
