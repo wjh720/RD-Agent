@@ -5,7 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # I/O paths (read from previous step outputs if present)
-out_dir = Path("/mnt/data/sota_history")
+out_dir = Path("sota_history")
 summary_csv = out_dir / "sota_sessions_summary.csv"
 added_csv = out_dir / "sota_added_features_by_session.csv"
 
