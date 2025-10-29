@@ -5,6 +5,7 @@ from typing import List, Dict, Any, Tuple
 import pandas as pd
 import matplotlib.pyplot as plt
 from loguru import logger
+import ast
 
 exp_name = "2025-10-29_01-12-54-858255"
 # === 1) Config ===
@@ -192,7 +193,6 @@ figA.savefig(figA_path, dpi=150, bbox_inches="tight")
 
 # === 6B) 累计特征数（仅标注 +N，详细名单放表里） ===
 # === 6B) 累计特征数（仅标注 +N，详细名单放表里） ===
-import ast
 
 def _to_list(x):
     if isinstance(x, list):
