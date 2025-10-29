@@ -210,11 +210,6 @@ with open(add_order_json, "w", encoding="utf-8") as f:
 logger.info(f"Saved (add order): {add_order_csv}")
 logger.info(f"Saved (add order): {add_order_json}")
 
-# 可选：打印到控制台
-for row in added_in_order:
-    logger.info(f"[#{row['order']:02d}] session={row['session_first_added']}  {row['factor_name']}")
-    logger.info(f"    .. {row['factor_formulation']}")
-
 # === 6A) IR & Annualized Return（双轴） ===
 plt.close("all")
 figA, ax1 = plt.subplots(figsize=(12, 6))
