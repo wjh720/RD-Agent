@@ -1,6 +1,6 @@
 import pandas as pd
 
-data = pd.read_pickle("log/2025-10-29_01-12-54-858255/__session__/14/0_direct_exp_gen")
+data = pd.read_pickle("log/2025-10-29_01-12-54-858255/__session__/15/0_direct_exp_gen")
 hypothesis, sota_exp = data.trace.get_sota_hypothesis_and_experiment()
 sota_result = sota_exp.result
 print("SOTA results:")
