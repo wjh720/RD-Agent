@@ -1,6 +1,6 @@
 #!/bin/bash
    # Script to reproduce results
 
- Foldername="1137_rdagent_fin_factor_aa"
+ Foldername="1138_rdagent_fin_factor_aa"
  mkdir -p out_logs/${Foldername} &> /dev/null
  RICH_NO_COLOR=1 PYTHONUNBUFFERED=1 rdagent fin_factor --loop-n 50 >>out_logs/${Foldername}/rdagent_fin_factor.txt 2>&1
