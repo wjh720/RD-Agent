@@ -9,7 +9,7 @@ exp_name = "2025-10-29_01-12-54-858255"
 # === 1) Config ===
 BASE = Path(f"log/{exp_name}/__session__")
 SESSION_RANGE = range(0, 16)  # 0..15 inclusive
-out_dir = Path(f"artifical/sota_history/{exp_name}")
+out_dir = Path(f"artifacts/sota_history/{exp_name}")
 
 # 常见的落盘相对路径（逐一尝试，找到就用）
 CANDIDATE_REL_PATHS = [
