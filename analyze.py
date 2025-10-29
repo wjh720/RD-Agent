@@ -190,26 +190,57 @@ figA.savefig(figA_path, dpi=150, bbox_inches="tight")
 
 
 # === 6B) 累计特征数（仅标注 +N，详细名单放表里） ===
+# === 6B) 累计特征数（仅标注 +N，详细名单放表里） ===
+import ast
+
+def _to_list_safe(x):
+    if isinstance(x, list): return x
+    if isinstance(x, str) and x.startswith('['):
+        try: return ast.literal_eval(x)
+        except: return []
+    return []
+
 plt.close("all")
 figB, ax = plt.subplots(figsize=(14, 4))
 
 if not df_added.empty:
-    df_added = df_added.sort_values("session")
-    x2 = df_added["session"].tolist()
-    y2 = df_added["n_factors"].tolist()
+    df_added = df_added.sort_values("session").copy()
 
+    # 确保列为 list（有时从 CSV 读出来是字符串）
+    if "added_features" in df_added.columns:
+        df_added["added_features"] = df_added["added_features"].apply(_to_list_safe)
+    else:
+        df_added["added_features"] = [[] for _ in range(len(df_added))]
+    if "removed_features" in df_added.columns:
+        df_added["removed_features"] = df_added["removed_features"].apply(_to_list_safe)
+    else:
+        df_added["removed_features"] = [[] for _ in range(len(df_added))]
+
+    # —— 仅在绘图阶段重建“累计特征集合” —— #
+    cum_set = set()
+    x2, y2, add_counts = [], [], []
+    for _, r in df_added.iterrows():
+        sess = int(r["session"])
+        adds = r["added_features"] or []
+        rems = r["removed_features"] or []
+        # 累计集合更新
+        cum_set.update(adds)
+        for f in rems:
+            cum_set.discard(f)
+        # 记录横纵坐标
+        x2.append(sess)
+        y2.append(len(cum_set))
+        add_counts.append(len(adds))
+
+    # 画图
     ax.step(x2, y2, where="post", label="Feature count")
     ax.scatter(x2, y2, s=25)
 
-    # 仅显示 +N，避免文字遮挡；详细新增名单请在表格中查看
-    for _, r in df_added.iterrows():
-        adds = r.get("added_features", [])
-        if isinstance(adds, float):  # 兼容 NaN
-            continue
-        n = len(adds) if isinstance(adds, list) else 0
+    # 标注：仅显示 +N，避免拥挤；具体名单放表格里
+    for sess, yv, n in zip(x2, y2, add_counts):
         if n > 0:
-            ax.annotate(f"+{n}", (r["session"], r["n_factors"]),
-                        xytext=(4, 6), textcoords="offset points", fontsize=8)
+            ax.annotate(f"+{n}", (sess, yv), xytext=(4, 6),
+                        textcoords="offset points", fontsize=8)
 
     ax.set_xlabel("Session Index")
     ax.set_ylabel("Number of Features")
