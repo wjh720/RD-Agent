@@ -38,7 +38,7 @@ class LLMSettings(ExtendedBaseSettings):
     chat_use_azure_token_provider: bool = False
     embedding_use_azure_token_provider: bool = False
     managed_identity_client_id: str | None = None
-    max_retry: int = 10
+    max_retry: int = 20
     retry_wait_seconds: int = 1
     dump_chat_cache: bool = False
     use_chat_cache: bool = False
