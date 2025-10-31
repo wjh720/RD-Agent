@@ -48,6 +48,10 @@ class LLMSettings(ExtendedBaseSettings):
     max_past_message_include: int = 10
     timeout_fail_limit: int = 10
     violation_fail_limit: int = 1
+    retry_pause_after: int | None = 10
+    """After how many consecutive retries to trigger an extended pause; None disables."""
+    retry_pause_seconds: int | None = 300
+    """Length of the extended pause in seconds when `retry_pause_after` is hit."""
 
     # Behavior of returning answers to the same question when caching is enabled
     use_auto_chat_cache_seed_gen: bool = False

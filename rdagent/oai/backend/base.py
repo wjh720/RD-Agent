@@ -541,7 +541,23 @@ class APIBackend(ABC):
                         match = re.search(r"Please retry after (\d+) seconds\.", e.message)
                         if match:
                             recommended_wait_seconds = int(match.group(1))
-                    time.sleep(recommended_wait_seconds)
+                    pause_after = LLM_SETTINGS.retry_pause_after
+                    pause_seconds = LLM_SETTINGS.retry_pause_seconds
+                    has_extended_pause = (
+                        pause_after is not None
+                        and pause_after > 0
+                        and pause_seconds is not None
+                        and pause_seconds > 0
+                        and (i + 1) % pause_after == 0
+                        and i + 1 < max_retry
+                    )
+                    if has_extended_pause and pause_seconds > recommended_wait_seconds:
+                        logger.warning(
+                            f"Retry attempt {i + 1} hit pause threshold; sleeping for {pause_seconds} seconds."
+                        )
+                        time.sleep(pause_seconds)
+                    else:
+                        time.sleep(recommended_wait_seconds)
                     if RD_Agent_TIMER_wrapper.timer.started and not isinstance(e, json.decoder.JSONDecodeError):
                         RD_Agent_TIMER_wrapper.timer.add_duration(datetime.now() - API_start_time)
                 logger.warning(str(e))
