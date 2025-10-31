@@ -141,12 +141,13 @@ class LiteLLMAPIBackend(APIBackend):
         """
 
         if response_format and not supports_response_schema(model=LITELLM_SETTINGS.chat_model):
-            # Deepseek will enter this branch
-            logger.warning(
-                f"{LogColors.YELLOW}Model {LITELLM_SETTINGS.chat_model} does not support response schema, ignoring response_format argument.{LogColors.END}",
-                tag="llm_messages",
-            )
-            response_format = None
+            if LITELLM_SETTINGS.chat_model != "qwen3-max":
+                # Deepseek will enter this branch
+                logger.warning(
+                    f"{LogColors.YELLOW}Model {LITELLM_SETTINGS.chat_model} does not support response schema, ignoring response_format argument.{LogColors.END}",
+                    tag="llm_messages",
+                )
+                response_format = None
 
         if response_format:
             kwargs["response_format"] = response_format
