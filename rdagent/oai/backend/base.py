@@ -465,7 +465,6 @@ class APIBackend(ABC):
         """This function to share operation between embedding and chat completion"""
         assert not (chat_completion and embedding), "chat_completion and embedding cannot be True at the same time"
         max_retry = LLM_SETTINGS.max_retry if LLM_SETTINGS.max_retry is not None else max_retry
-        print(f"max_retry: {max_retry}, LLM_SETTINGS.max_retry: {LLM_SETTINGS.max_retry}")
         timeout_count = 0
         violation_count = 0
         embedding_truncated = False  # Track if we've already tried truncation
